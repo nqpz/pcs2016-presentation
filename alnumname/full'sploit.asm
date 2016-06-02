@@ -3,4 +3,4 @@ post_start:
 	db 'name='
 	%include "'sploit.asm"
 	db '&'
-	times 1024-($-post_start) db 'z'
+	times 1023-($-post_start) db 'z'
