@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-/*static char request[0x6400]; /* TODO: Do we still need this? */
+static char request[1024]; /* TODO: Do we still need this? */
 
 /* Make sure it's large enough for the future */
 static char parsedvalue[65536];
@@ -23,7 +23,7 @@ int name_error()
 int handle_post(char* postdata)
 {
     int len;
-    char name[50] = {0}; /* No one has longer names than that*/
+    char name[100] = {0}; /* No one has longer names than that*/
     if (!(len = get_value("name", postdata)))
         return name_error();
     memcpy(name, parsedvalue, len); 
@@ -45,10 +45,11 @@ int get_value(char* keyname, char* req)
             if (*req == '=' && strncmp(key, keyname, strlen(keyname)) == 0)
             {
                 value = req+1;
-                break;
+                goto outer;
             }
         }
     }
+outer:
     if (!value)
         return 0;
     for (; *value && *value != '&'; value++, buf++)
@@ -68,9 +69,10 @@ int main(int argc, char* argv[])
     char* request_method = getenv("REQUEST_METHOD");
     if (strcmp(request_method, "POST") == 0)
     {
-        char postdata[65536];
-        int len = read(STDIN_FILENO, postdata, 65535);
+        char postdata[1024];
+        int len = read(STDIN_FILENO, postdata, 1023);
         postdata[len] = 0;
+        /*printf("postdata:%s\n", postdata);*/
         return handle_post(postdata);
     }
 
