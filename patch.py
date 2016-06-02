@@ -6,14 +6,6 @@ import sys
 def is_alphanumeric(x):
     return 'a' <= x <= 'z' or 'A' <= x <= 'Z' or '0' <= x <= '9'
 
-def only_alphanumeric_bytes(xs):
-    return all(is_alphanumeric(chr(x)) for x in xs)
-
-def xor_patch_number(n):
-    assert 0 <= n <= 255
-
-    patches = []
-
 class Alphanum:
     def __init__(self, char):
         self.char = char
@@ -62,7 +54,49 @@ def find_all_patches():
         else:
             raise Exception
             
-    print(steps)
+    return steps
+
+def make_alphanumeric_pseudo_assembly_code(patches, inp):
+    xor_instr_length = 3
+    not_instr_length = 2
+
+    def instr_len(p):
+        if isinstance(p, Xor):
+            return xor_instr_length
+        elif isinstance(p, Not):
+            return not_instr_length
+        else:
+            raise Exception
+
+    length_to_db = []
+    length_temp = 0
+    for i in inp[::-1]:
+        ps = patches[i][1:]
+        length_temp += sum(instr_len(p) for p in ps)
+        length_to_db.append(length_temp)
+    length_to_db = length_to_db[::-1]
+
+    length_to_byte = [l + offset for l, offset in zip(length_to_db, range(len(inp)))]
+
+    lines = []
+    
+    for i, ltb in zip(inp, length_to_byte):
+        ps = patches[i][1:]
+        for p in ps:
+            if isinstance(p, Xor):
+                lines.append('xor [esi+{}], \'{}\''.format(ltb, p.char))
+            elif isinstance(p, Not):
+                lines.append('not [esi+{}]'.format(ltb))
+            else:
+                raise Exception
+
+    lines.append('db \'{}\''.format(''.join(patches[i][0].char for i in inp)))
+
+    return ''.join(line + '\n' for line in lines)
 
 if __name__ == '__main__':
-    find_all_patches()
+    patches = find_all_patches()
+    inp_file = sys.argv[1]
+    with open(inp_file, 'rb') as f:
+        inp = f.read()
+    print(make_alphanumeric_pseudo_assembly_code(patches, inp), end='')
